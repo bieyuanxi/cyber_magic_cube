@@ -291,15 +291,6 @@ impl History {
     }
 }
 
-#[derive(Debug, Resource)]
-struct CmdBuffer(VecDeque<RotateCmd>);
-
-impl Default for CmdBuffer {
-    fn default() -> Self {
-        Self(VecDeque::with_capacity(1))
-    }
-}
-
 fn rotate_cmd_handler(
     mut cmd_in_progress: Local<bool>,
     mut history: ResMut<History>,
