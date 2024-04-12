@@ -68,7 +68,7 @@ fn setup(
             for z in z {
                 commands.spawn((
                     PbrBundle {
-                        mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
+                        mesh: meshes.add(Cuboid::from_size(Vec3::splat(CUBE_LEN))),
                         material: materials.add(Color::rgb_u8(255, 140, 0)),
                         transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
@@ -85,7 +85,7 @@ fn setup(
             for z in z {
                 commands.spawn((
                     PbrBundle {
-                        mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
+                        mesh: meshes.add(Cuboid::from_size(Vec3::splat(CUBE_LEN))),
                         material: materials.add(Color::rgb_u8(124, 144, 255)),
                         transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
@@ -101,7 +101,7 @@ fn setup(
             for z in z {
                 commands.spawn((
                     PbrBundle {
-                        mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
+                        mesh: meshes.add(Cuboid::from_size(Vec3::splat(CUBE_LEN))),
                         material: materials.add(Color::rgb_u8(124, 144, 255)),
                         transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
@@ -117,7 +117,7 @@ fn setup(
             for y in y {
                 commands.spawn((
                     PbrBundle {
-                        mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
+                        mesh: meshes.add(Cuboid::from_size(Vec3::splat(CUBE_LEN))),
                         material: materials.add(Color::rgb_u8(124, 144, 255)),
                         transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
@@ -134,7 +134,7 @@ fn setup(
             for z in 1..DIMENSION - 1 {
                 commands.spawn((
                     PbrBundle {
-                        mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
+                        mesh: meshes.add(Cuboid::from_size(Vec3::splat(CUBE_LEN))),
                         material: materials.add(Color::rgb_u8(154, 205, 50)),
                         transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
@@ -150,7 +150,7 @@ fn setup(
             for z in 1..DIMENSION - 1 {
                 commands.spawn((
                     PbrBundle {
-                        mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
+                        mesh: meshes.add(Cuboid::from_size(Vec3::splat(CUBE_LEN))),
                         material: materials.add(Color::rgb_u8(154, 205, 50)),
                         transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
@@ -166,7 +166,7 @@ fn setup(
             for y in 1..DIMENSION - 1 {
                 commands.spawn((
                     PbrBundle {
-                        mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
+                        mesh: meshes.add(Cuboid::from_size(Vec3::splat(CUBE_LEN))),
                         material: materials.add(Color::rgb_u8(154, 205, 50)),
                         transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
