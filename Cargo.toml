@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 bevy = { version = "0.13.1", features = ["dynamic_linking", "wayland"] }
+iyes_perf_ui = "0.2.3"
 regex = "1.10.4"
 
 

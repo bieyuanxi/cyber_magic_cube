@@ -1,6 +1,7 @@
-use std::{collections::VecDeque, f32::consts::PI};
-use regex::Regex;
 use bevy::prelude::*;
+use iyes_perf_ui::{PerfUiCompleteBundle, PerfUiPlugin};
+use regex::Regex;
+use std::{collections::VecDeque, f32::consts::PI};
 
 const DIMENSION: usize = 5;
 const CUBE_LEN: f32 = 0.9;
@@ -10,9 +11,10 @@ const ROTATE_SPEED: f32 = PI / 2.;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(MyPerfUIPlugin)
         .init_resource::<History>()
         .add_systems(Startup, setup_camera_light)
-        .add_systems(Startup, setup)
+        .add_systems(Startup, setup_cubes)
         // .add_systems(Update, (rotate_camera,))
         // .add_systems(Update, scale_camera)
         .add_event::<InputEvent>()
@@ -24,11 +26,29 @@ fn main() {
         .run();
 }
 
+
+struct MyPerfUIPlugin;
+
+impl Plugin for MyPerfUIPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
+        .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
+        .add_plugins(PerfUiPlugin)
+        .add_systems(Startup, setup_perf_ui);
+    }
+}
+
+fn setup_perf_ui(mut commands: Commands) {
+    commands.spawn(PerfUiCompleteBundle::default());
+}
+
 fn setup_camera_light(mut commands: Commands) {
     //camera
     commands.spawn(Camera3dBundle {
         camera: Camera::default(),
-        transform: Transform::from_xyz(8., 8., 8.).looking_at(Vec3::splat(CENTER), Vec3::Y),
+        transform: Transform::from_translation(Vec3::splat(DIMENSION as f32))
+            .looking_at(Vec3::splat(CENTER), Vec3::Y),
         ..default()
     });
 
@@ -38,7 +58,7 @@ fn setup_camera_light(mut commands: Commands) {
             shadows_enabled: false,
             ..Default::default()
         },
-        transform: Transform::from_xyz(8., 8., 8.),
+        transform: Transform::from_translation(Vec3::splat(DIMENSION as f32)),
         ..default()
     });
 }
@@ -50,7 +70,7 @@ fn idx2axis(a: usize) -> f32 {
     a as f32 - CENTER
 }
 
-fn setup(
+fn setup_cubes(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -323,7 +343,7 @@ fn rotate_calculater(
         let index = e.0.index;
         let is_clockwise = e.0.clockwise;
         for mut cube in &mut query {
-            print!("{:?}", cube);
+            // print!("{:?}", cube);
             match axis {
                 Axis::X => {
                     if index == cube.0 {
@@ -356,7 +376,7 @@ fn rotate_calculater(
                     }
                 }
             };
-            println!(" -> {:?}", cube);
+            // println!(" -> {:?}", cube);
         }
     }
 }
@@ -461,9 +481,9 @@ fn rotate_animate(
 
     match local.as_mut() {
         Some((_, _, v)) => *v += delta,
-        None => {},
+        None => {}
     }
-    
+
     if done {
         *local = None;
         rotate_done_ev.send(RotateDoneEvent);
