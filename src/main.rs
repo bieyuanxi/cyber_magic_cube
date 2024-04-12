@@ -312,6 +312,7 @@ fn rotate_cmd_handler(
     }
 
     for ev in input_ev.read() {
+        println!("{:?}", ev.0);
         match ev.0 {
             Cmd::UnDo => {
                 if let Some(cmd) = history.undo() {
@@ -399,7 +400,6 @@ fn text_input(
         if buf.is_empty() && !last_buf.is_empty() {
             *buf = last_buf.clone();
         }
-        println!("Text input: {:?}", buf);
         if *buf == String::from("undo") {
             rotate_ev.send(InputEvent(Cmd::UnDo));
         }
@@ -412,7 +412,7 @@ fn text_input(
         for (_, [axis, index, clockwise]) in re.captures_iter(&buf).map(|c| c.extract()) {
             rotate_ev.send(InputEvent(Cmd::Do(RotateCmd {
                 axis: axis.into(),
-                index: index.parse::<usize>().unwrap_or(0).saturating_sub(1),
+                index: index.parse::<usize>().unwrap_or(0).min(DIMENSION).saturating_sub(1),
                 clockwise: !clockwise.eq("'"),
             })));
         }
