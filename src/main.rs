@@ -1,25 +1,26 @@
 use std::{collections::VecDeque, f32::consts::PI};
-
+use regex::Regex;
 use bevy::prelude::*;
 
 const DIMENSION: usize = 5;
-
 const CUBE_LEN: f32 = 0.9;
-
 const CENTER: f32 = (DIMENSION - 1) as f32 / 2.;
+const ROTATE_SPEED: f32 = PI / 2.;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .init_resource::<History>()
         .add_systems(Startup, setup_camera_light)
         .add_systems(Startup, setup)
-        // .add_systems(Update, (rotate_camera, ))
+        // .add_systems(Update, (rotate_camera,))
         // .add_systems(Update, scale_camera)
-        .add_event::<RotateEvent>()
+        .add_event::<InputEvent>()
         .add_event::<RotateDoneEvent>()
-        .add_systems(Update, input_handler)
-        .add_systems(Update, rotate_cube)
-        .add_systems(Update, update_cube_position)
+        .add_event::<RotateEvent>()
+        .add_systems(Update, rotate_cmd_handler)
+        .add_systems(Update, (rotate_calculater, rotate_animate).chain())
+        .add_systems(Update, text_input)
         .run();
 }
 
@@ -42,8 +43,12 @@ fn setup_camera_light(mut commands: Commands) {
     });
 }
 
-#[derive(Component)]
-struct CubePart(Vec3);
+#[derive(Component, Debug)]
+struct CubeIndex(usize, usize, usize);
+
+fn idx2axis(a: usize) -> f32 {
+    a as f32 - CENTER
+}
 
 fn setup(
     mut commands: Commands,
@@ -51,14 +56,6 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     println!("Hello, world!");
-
-    // // cube
-    // commands.spawn(PbrBundle {
-    //     mesh: meshes.add(Cuboid::new(1.0, 1.0, 1.0)),
-    //     material: materials.add(Color::rgb_u8(124, 144, 255)),
-    //     transform: Transform::from_xyz(0.0, 0.5, 0.0),
-    //     ..default()
-    // });
 
     assert!(DIMENSION > 1);
 
@@ -73,10 +70,10 @@ fn setup(
                     PbrBundle {
                         mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
                         material: materials.add(Color::rgb_u8(255, 140, 0)),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
                     },
-                    CubePart(Vec3::new(x as f32, y as f32, z as f32)),
+                    CubeIndex(x, y, z),
                 ));
             }
         }
@@ -90,10 +87,10 @@ fn setup(
                     PbrBundle {
                         mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
                         material: materials.add(Color::rgb_u8(124, 144, 255)),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
                     },
-                    CubePart(Vec3::new(x as f32, y as f32, z as f32)),
+                    CubeIndex(x, y, z),
                 ));
             }
         }
@@ -106,10 +103,10 @@ fn setup(
                     PbrBundle {
                         mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
                         material: materials.add(Color::rgb_u8(124, 144, 255)),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
                     },
-                    CubePart(Vec3::new(x as f32, y as f32, z as f32)),
+                    CubeIndex(x, y, z),
                 ));
             }
         }
@@ -122,10 +119,10 @@ fn setup(
                     PbrBundle {
                         mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
                         material: materials.add(Color::rgb_u8(124, 144, 255)),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
                     },
-                    CubePart(Vec3::new(x as f32, y as f32, z as f32)),
+                    CubeIndex(x, y, z),
                 ));
             }
         }
@@ -139,10 +136,10 @@ fn setup(
                     PbrBundle {
                         mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
                         material: materials.add(Color::rgb_u8(154, 205, 50)),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
                     },
-                    CubePart(Vec3::new(x as f32, y as f32, z as f32)),
+                    CubeIndex(x, y, z),
                 ));
             }
         }
@@ -155,10 +152,10 @@ fn setup(
                     PbrBundle {
                         mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
                         material: materials.add(Color::rgb_u8(154, 205, 50)),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
                     },
-                    CubePart(Vec3::new(x as f32, y as f32, z as f32)),
+                    CubeIndex(x, y, z),
                 ));
             }
         }
@@ -171,10 +168,10 @@ fn setup(
                     PbrBundle {
                         mesh: meshes.add(Cuboid::new(CUBE_LEN, CUBE_LEN, CUBE_LEN)),
                         material: materials.add(Color::rgb_u8(154, 205, 50)),
-                        transform: Transform::from_xyz(x as f32, y as f32, z as f32),
+                        transform: Transform::from_xyz(idx2axis(x), idx2axis(y), idx2axis(z)),
                         ..default()
                     },
-                    CubePart(Vec3::new(x as f32, y as f32, z as f32)),
+                    CubeIndex(x, y, z),
                 ));
             }
         }
@@ -184,7 +181,7 @@ fn setup(
 fn rotate_camera(time: Res<Time>, mut query: Query<&mut Transform, With<Camera>>) {
     for mut transform in &mut query {
         transform.rotate_around(
-            Vec3::splat(CENTER),
+            Vec3::ZERO,
             Quat::from_axis_angle(Vec3::Y, time.delta_seconds() * PI / 5.0),
         );
     }
@@ -198,187 +195,285 @@ fn scale_camera(time: Res<Time>, mut query: Query<&mut Transform, With<Camera>>)
     }
 }
 
-#[derive(Event)]
-struct RotateEvent(RotateMsg);
-
-#[derive(Debug, Clone, Copy)]
-struct RotateMsg(Vec3, usize, bool);
-
-fn input_handler(
-    time: Res<Time>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mesh_query: Query<&Handle<Mesh>, With<CubePart>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut query: Query<&mut Transform, With<CubePart>>,
-    mut rotate_ev_writer: EventWriter<RotateEvent>,
-    mut keys: Local<(Option<KeyCode>, Option<KeyCode>)>
-) {
-    if keyboard_input.just_pressed(KeyCode::KeyX) {
-        keys.0 = Some(KeyCode::KeyX);
-        // rotate_ev_writer.send(RotateEvent(RotateMsg(Vec3::X, 0, true)));
-    }
-    if keyboard_input.just_pressed(KeyCode::KeyY) {
-        keys.0 = Some(KeyCode::KeyY);
-        // rotate_ev_writer.send(RotateEvent(RotateMsg(Vec3::Y, 0, true)));
-    }
-    if keyboard_input.just_pressed(KeyCode::KeyZ) {
-        keys.0 = Some(KeyCode::KeyZ);
-        // rotate_ev_writer.send(RotateEvent(RotateMsg(Vec3::Z, 0, true)));
-    }
-
-    if keyboard_input.just_pressed(KeyCode::Digit0) {
-        keys.1 = Some(KeyCode::Digit0);
-    }
-
-    if keyboard_input.just_pressed(KeyCode::Digit1) {
-        keys.1 = Some(KeyCode::Digit1);
-    }
-
-    if keyboard_input.just_pressed(KeyCode::Digit2) {
-        keys.1 = Some(KeyCode::Digit2);
-    }
-
-    if keyboard_input.just_pressed(KeyCode::Digit3) {
-        keys.1 = Some(KeyCode::Digit3);
-    }
-
-    if keyboard_input.just_pressed(KeyCode::Digit4) {
-        keys.1 = Some(KeyCode::Digit4);
-    }
-
-    if keys.0.is_none() && keys.1.is_some() {
-        keys.1 = None;
-    }
-
-    if keys.0.is_some() && keys.1.is_some() {
-        let v3 = match keys.0.unwrap() {
-            KeyCode::KeyX => Vec3::X,
-            KeyCode::KeyY => Vec3::Y,
-            KeyCode::KeyZ => Vec3::Z,
-            _ => Vec3::X,
-        };
-
-        let idx = match keys.1.unwrap() {
-            KeyCode::Digit0 => 0,
-            KeyCode::Digit1 => 1,
-            KeyCode::Digit2 => 2,
-            KeyCode::Digit3 => 3,
-            KeyCode::Digit4 => 4,
-            _ => 0,
-        };
-        rotate_ev_writer.send(RotateEvent(RotateMsg(v3, idx, true)));
-        keys.0 = None;
-        keys.1 = None;
-    }
-    // if keyboard_input.pressed(KeyCode::KeyR) {
-    //     for mut transform in &mut query {
-    //         transform.look_to(Vec3::NEG_Z, Vec3::Y);
-    //     }
-    // }
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+enum Axis {
+    #[default]
+    X,
+    Y,
+    Z,
 }
 
-#[derive(Event)]
-struct RotateDoneEvent(RotateMsg);
-
-#[derive(Resource, Default)]
-struct Ra(Option<(f32, f32, RotateMsg)>);
-
-fn rotate_cube(
-    time: Res<Time>,
-    mut local: Local<VecDeque<RotateMsg>>,
-    mut current: Local<Ra>,
-    mut rotate_ev: EventReader<RotateEvent>,
-    mut rotate_done_ev: EventWriter<RotateDoneEvent>,
-    mut query: Query<(&mut Transform, &CubePart), With<CubePart>>,
-) {
-    for ev in rotate_ev.read() {
-        if local.len() < 1 {
-            // only 1 steps is cached
-            println!("rotate: {:?}", ev.0);
-            local.push_back(ev.0.clone());
-        }
-    }
-
-    if let Some((done, target, msg)) = current.0 {
-        let mut angle = time.delta_seconds() * PI / 2.;
-        // if done > target {
-        //     angle = -angle;
-        // }
-        if done + angle < target {
-            current.0 = Some((done + angle, target, msg));
+impl From<&str> for Axis {
+    fn from(value: &str) -> Self {
+        let value = value.to_lowercase();
+        if value == "x" {
+            Axis::X
+        } else if value == "y" {
+            Axis::Y
+        } else if value == "z" {
+            Axis::Z
         } else {
-            angle = target - done;
-            current.0 = None;
-
-            rotate_done_ev.send(RotateDoneEvent(msg));
-        }
-
-        for (mut transform, position) in &mut query {
-            let mut result = false;
-            if msg.0 == Vec3::X && msg.1 == position.0.x as usize {
-                //weird
-                result = true;
-            } else if msg.0 == Vec3::Y && msg.1 == position.0.y as usize {
-                result = true;
-            } else if msg.0 == Vec3::Z && msg.1 == position.0.z as usize {
-                result = true;
-            }
-            if result {
-                transform.rotate_around(Vec3::splat(CENTER), Quat::from_axis_angle(msg.0, angle));
-            }
-        }
-    }
-
-    if current.0.is_none() {
-        if let Some(msg) = local.pop_front() {
-            let angle = if msg.2 { PI / 2. } else { -PI / 2. };
-            current.0 = Some((0., angle, msg));
+            Axis::X
         }
     }
 }
 
-fn update_cube_position(
+#[derive(Component, Debug, Clone, Copy)]
+struct RotateCmd {
+    axis: Axis,
+    index: usize,
+    clockwise: bool,
+}
+
+#[derive(Event, Debug)]
+struct InputEvent(Cmd);
+
+#[derive(Event, Debug)]
+struct RotateEvent(RotateCmd);
+
+#[derive(Event)]
+struct RotateDoneEvent;
+
+#[derive(Resource)]
+struct History {
+    stack: VecDeque<RotateCmd>,
+    cached: VecDeque<RotateCmd>,
+}
+
+impl Default for History {
+    fn default() -> Self {
+        Self {
+            stack: VecDeque::with_capacity(64),
+            cached: VecDeque::with_capacity(64),
+        }
+    }
+}
+
+impl History {
+    fn push(&mut self, value: RotateCmd) {
+        self.stack.push_back(value);
+        self.cached.clear();
+    }
+
+    fn undo(&mut self) -> Option<RotateCmd> {
+        self.stack.pop_back().and_then(|mut cmd| {
+            self.cached.push_back(cmd);
+            cmd.clockwise = !cmd.clockwise;
+            Some(cmd)
+        })
+    }
+
+    fn redo(&mut self) -> Option<RotateCmd> {
+        self.cached.pop_back().and_then(|cmd| {
+            self.stack.push_back(cmd);
+            Some(cmd)
+        })
+    }
+}
+
+#[derive(Debug, Resource)]
+struct CmdBuffer(VecDeque<RotateCmd>);
+
+impl Default for CmdBuffer {
+    fn default() -> Self {
+        Self(VecDeque::with_capacity(1))
+    }
+}
+
+fn rotate_cmd_handler(
+    mut cmd_in_progress: Local<bool>,
+    mut history: ResMut<History>,
+    mut input_ev: EventReader<InputEvent>,
     mut rotate_done_ev: EventReader<RotateDoneEvent>,
-    mut query: Query<&mut CubePart, With<CubePart>>,
+    mut rotate_cal_ev: EventWriter<RotateEvent>,
 ) {
-    for ev in rotate_done_ev.read() {
-        let msg = ev.0;
-        let axis = msg.0;
-        let i = msg.1;
+    for _ in rotate_done_ev.read() {
+        *cmd_in_progress = false;
+    }
 
-        for mut cubepart in &mut query {
-            if msg.0 == Vec3::X && msg.1 == cubepart.0.x as usize {
-                //weird
-                let (y, z) = clock(
-                    cubepart.0.y as isize - CENTER as isize,
-                    cubepart.0.z as isize - CENTER as isize,
-                );
-                cubepart.0 = Vec3::new(i as f32, y as f32 + CENTER, z as f32 + CENTER);
-            } else if msg.0 == Vec3::Y && msg.1 == cubepart.0.y as usize {
-                let (x, z) = anti_clock(
-                    cubepart.0.x as isize - CENTER as isize,
-                    cubepart.0.z as isize - CENTER as isize,
-                );
-                cubepart.0 = Vec3::new(x as f32 + CENTER, i as f32, z as f32 + CENTER);
-            } else if msg.0 == Vec3::Z && msg.1 == cubepart.0.z as usize {
-                let (x, y) = clock(
-                    cubepart.0.x as isize - CENTER as isize,
-                    cubepart.0.y as isize - CENTER as isize,
-                );
-                cubepart.0 = Vec3::new( x as f32 + CENTER, y as f32 + CENTER, i as f32);
+    for ev in input_ev.read() {
+        match ev.0 {
+            Cmd::UnDo => {
+                if let Some(cmd) = history.undo() {
+                    rotate_cal_ev.send(RotateEvent(cmd));
+                }
+            }
+            Cmd::ReDo => {
+                if let Some(cmd) = history.redo() {
+                    rotate_cal_ev.send(RotateEvent(cmd));
+                }
+            }
+            Cmd::Do(cmd) => {
+                if !*cmd_in_progress {
+                    *cmd_in_progress = true;
+                    history.push(cmd);
+                    rotate_cal_ev.send(RotateEvent(cmd));
+                }
             }
         }
     }
 }
 
-fn new_position(old: &CubePart, rotate: &RotateMsg) -> CubePart {
-    todo!()
+fn rotate_calculater(
+    mut query: Query<&mut CubeIndex, With<CubeIndex>>,
+    mut ev: EventReader<RotateEvent>,
+) {
+    for e in ev.read() {
+        let axis = e.0.axis;
+        let index = e.0.index;
+        let is_clockwise = e.0.clockwise;
+        for mut cube in &mut query {
+            print!("{:?}", cube);
+            match axis {
+                Axis::X => {
+                    if index == cube.0 {
+                        let (a, b) = if is_clockwise {
+                            clockwise(cube.1, cube.2, DIMENSION)
+                        } else {
+                            anti_clockwise(cube.1, cube.2, DIMENSION)
+                        };
+                        *cube = CubeIndex(index, a, b);
+                    }
+                }
+                Axis::Y => {
+                    if index == cube.1 {
+                        let (b, a) = if is_clockwise {
+                            clockwise(cube.2, cube.0, DIMENSION)
+                        } else {
+                            anti_clockwise(cube.2, cube.0, DIMENSION)
+                        };
+                        *cube = CubeIndex(a, index, b);
+                    }
+                }
+                Axis::Z => {
+                    if index == cube.2 {
+                        let (a, b) = if is_clockwise {
+                            clockwise(cube.0, cube.1, DIMENSION)
+                        } else {
+                            anti_clockwise(cube.0, cube.1, DIMENSION)
+                        };
+                        *cube = CubeIndex(a, b, index);
+                    }
+                }
+            };
+            println!(" -> {:?}", cube);
+        }
+    }
 }
 
-fn clock(a: isize, b: isize) -> (isize, isize) {
-    (-b, a)
+#[derive(Debug)]
+enum Cmd {
+    UnDo,
+    ReDo,
+    Do(RotateCmd),
 }
 
-fn anti_clock(a: isize, b: isize) -> (isize, isize) {
-    (b, -a)
+fn text_input(
+    mut evr_char: EventReader<ReceivedCharacter>,
+    kbd: Res<ButtonInput<KeyCode>>,
+    mut buf: Local<String>,
+    mut last_buf: Local<String>,
+    mut rotate_ev: EventWriter<InputEvent>,
+) {
+    if kbd.just_pressed(KeyCode::Enter) {
+        if buf.is_empty() && !last_buf.is_empty() {
+            *buf = last_buf.clone();
+        }
+        println!("Text input: {:?}", buf);
+        if *buf == String::from("undo") {
+            rotate_ev.send(InputEvent(Cmd::UnDo));
+        }
+        if *buf == String::from("redo") {
+            rotate_ev.send(InputEvent(Cmd::ReDo));
+        }
+
+        let re = Regex::new(r"^([x-z])([1-9][0-9]*?)('?)$").unwrap();
+
+        for (_, [axis, index, clockwise]) in re.captures_iter(&buf).map(|c| c.extract()) {
+            rotate_ev.send(InputEvent(Cmd::Do(RotateCmd {
+                axis: axis.into(),
+                index: index.parse::<usize>().unwrap_or(0).saturating_sub(1),
+                clockwise: !clockwise.eq("'"),
+            })));
+        }
+        *last_buf = buf.clone();
+        buf.clear();
+    }
+    if kbd.just_pressed(KeyCode::Backspace) {
+        buf.pop();
+        println!("buf: {:?}", buf)
+    }
+    for ev in evr_char.read() {
+        // ignore control (special) characters
+        if !ev.char.chars().last().unwrap().is_control() {
+            buf.push(ev.char.parse().unwrap());
+            println!("buf: {:?}", buf)
+        }
+    }
+}
+
+fn rotate_animate(
+    timer: Res<Time>,
+    mut local: Local<Option<(Axis, usize, f32)>>,
+    mut ev: EventReader<RotateEvent>,
+    mut rotate_done_ev: EventWriter<RotateDoneEvent>,
+    mut query: Query<(&mut Transform, &CubeIndex), With<CubeIndex>>,
+) {
+    let mut done = false;
+    for event in ev.read() {
+        let cmd = event.0;
+        match local.as_mut() {
+            Some((axis, index, degrees)) => {
+                if *axis == cmd.axis && *index == cmd.index {
+                    *degrees += if cmd.clockwise { PI / 2. } else { -PI / 2. };
+                }
+            }
+            None => {
+                let degrees = if cmd.clockwise { PI / 2. } else { -PI / 2. };
+                *local = Some((cmd.axis, cmd.index, degrees));
+            }
+        }
+    }
+
+    let mut delta = timer.delta_seconds() * ROTATE_SPEED;
+    if let Some((axis, index, degrees)) = *local {
+        let abs_degrees = degrees.abs();
+        if abs_degrees < delta {
+            delta = abs_degrees;
+            done = true;
+        }
+
+        if degrees > 0. {
+            delta = -delta;
+        }
+
+        for (mut transform, idx) in &mut query {
+            let (cmp_idx, axis_vec3) = match axis {
+                Axis::X => (idx.0, Vec3::X),
+                Axis::Y => (idx.1, Vec3::Y),
+                Axis::Z => (idx.2, Vec3::Z),
+            };
+            if index == cmp_idx {
+                transform.rotate_around(Vec3::ZERO, Quat::from_axis_angle(axis_vec3, delta));
+            }
+        }
+    }
+
+    match local.as_mut() {
+        Some((_, _, v)) => *v += delta,
+        None => {},
+    }
+    
+    if done {
+        *local = None;
+        rotate_done_ev.send(RotateDoneEvent);
+    }
+}
+
+fn clockwise(a: usize, b: usize, dim: usize) -> (usize, usize) {
+    (b, dim - 1 - a)
+}
+
+fn anti_clockwise(a: usize, b: usize, dim: usize) -> (usize, usize) {
+    (dim - 1 - b, a)
 }
