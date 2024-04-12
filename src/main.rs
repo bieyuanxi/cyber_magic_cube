@@ -3,7 +3,7 @@ use iyes_perf_ui::{PerfUiCompleteBundle, PerfUiPlugin};
 use regex::Regex;
 use std::{collections::VecDeque, f32::consts::PI};
 
-const DIMENSION: usize = 5;
+const DIMENSION: usize = 16;
 const CUBE_LEN: f32 = 0.9;
 const CENTER: f32 = (DIMENSION - 1) as f32 / 2.;
 const ROTATE_SPEED: f32 = PI / 2.;
@@ -26,16 +26,15 @@ fn main() {
         .run();
 }
 
-
 struct MyPerfUIPlugin;
 
 impl Plugin for MyPerfUIPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
-        .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
-        .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
-        .add_plugins(PerfUiPlugin)
-        .add_systems(Startup, setup_perf_ui);
+            .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
+            .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
+            .add_plugins(PerfUiPlugin)
+            .add_systems(Startup, setup_perf_ui);
     }
 }
 
@@ -304,25 +303,25 @@ fn rotate_cmd_handler(
 
     for ev in input_ev.read() {
         println!("{:?}", ev.0);
-        match ev.0 {
-            Cmd::UnDo => {
-                if let Some(cmd) = history.undo() {
-                    rotate_cal_ev.send(RotateEvent(cmd));
+        if !*cmd_in_progress {
+            match ev.0 {
+                Cmd::UnDo => {
+                    if let Some(cmd) = history.undo() {
+                        rotate_cal_ev.send(RotateEvent(cmd));
+                    }
                 }
-            }
-            Cmd::ReDo => {
-                if let Some(cmd) = history.redo() {
-                    rotate_cal_ev.send(RotateEvent(cmd));
+                Cmd::ReDo => {
+                    if let Some(cmd) = history.redo() {
+                        rotate_cal_ev.send(RotateEvent(cmd));
+                    }
                 }
-            }
-            Cmd::Do(cmd) => {
-                if !*cmd_in_progress {
+                Cmd::Do(cmd) => {
                     *cmd_in_progress = true;
                     history.push(cmd);
                     rotate_cal_ev.send(RotateEvent(cmd));
                 }
             }
-        }
+        } 
     }
 }
 
@@ -403,7 +402,11 @@ fn text_input(
         for (_, [axis, index, clockwise]) in re.captures_iter(&buf).map(|c| c.extract()) {
             rotate_ev.send(InputEvent(Cmd::Do(RotateCmd {
                 axis: axis.into(),
-                index: index.parse::<usize>().unwrap_or(0).min(DIMENSION).saturating_sub(1),
+                index: index
+                    .parse::<usize>()
+                    .unwrap_or(0)
+                    .min(DIMENSION)
+                    .saturating_sub(1),
                 clockwise: !clockwise.eq("'"),
             })));
         }
