@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use iyes_perf_ui::{PerfUiCompleteBundle, PerfUiPlugin};
+use iyes_perf_ui::{entries::PerfUiCompleteBundle, PerfUiPlugin};
 use regex::Regex;
 use std::{collections::VecDeque, f32::consts::PI};
 
